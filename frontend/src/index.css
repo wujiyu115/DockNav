@@ -1,0 +1,182 @@
+/* ── 毛玻璃视觉系统 (visionOS 深色玻璃)，与 Frostcast 同一套设计令牌 ───── */
+:root{
+  --bg:#08090e;
+  --glass:rgba(255,255,255,0.05);
+  --glass-mid:rgba(255,255,255,0.08);
+  --glass-strong:rgba(255,255,255,0.14);
+  --fg:rgba(255,255,255,0.92);
+  --fg2:rgba(255,255,255,0.55);
+  --muted:rgba(255,255,255,0.35);
+  --border:rgba(255,255,255,0.06);
+  --border-strong:rgba(255,255,255,0.12);
+  --accent:#5A8CE8;
+  --accent-soft:rgba(90,140,232,0.16);
+  --ok:#4ad295;
+  --warn:#e8c15a;
+  --danger:#ff6b6b;
+  --font:'SF Pro Display',-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,monospace;
+  --blur:blur(40px) saturate(180%);
+  --r-card:16px; --r-ctl:12px; --r-pill:99px;
+  --inset:inset 0 1px 0 rgba(255,255,255,0.05);
+  --wash:1;
+  --card-shadow:0 8px 30px rgba(0,0,0,.35);
+  --card-shadow-h:0 16px 44px rgba(0,0,0,.5);
+  --ease-out:cubic-bezier(.2,0,0,1);
+}
+/* 浅色模式 — 同一套语言，玻璃浮在亮底之上 */
+:root[data-theme="light"]{
+  --bg:#e7e9f0;
+  --glass:rgba(255,255,255,0.55);
+  --glass-mid:rgba(255,255,255,0.72);
+  --glass-strong:rgba(255,255,255,0.92);
+  --fg:rgba(18,20,28,0.92);
+  --fg2:rgba(18,20,28,0.58);
+  --muted:rgba(18,20,28,0.40);
+  --border:rgba(18,20,28,0.08);
+  --border-strong:rgba(18,20,28,0.16);
+  --inset:inset 0 1px 0 rgba(255,255,255,0.7);
+  --wash:.55;
+  --card-shadow:0 8px 24px rgba(30,40,70,.10);
+  --card-shadow-h:0 16px 40px rgba(30,40,70,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;max-width:100%;overflow-x:hidden}
+body{
+  font-family:var(--font);color:var(--fg);background:var(--bg);
+  -webkit-font-smoothing:antialiased;min-height:100dvh;overflow-x:hidden;
+  transition:background .3s ease,color .3s ease;
+}
+/* 背景色雾，玻璃后透出 */
+body::before{
+  content:"";position:fixed;inset:-20%;z-index:0;pointer-events:none;opacity:var(--wash);
+  background:
+    radial-gradient(48vw 48vw at 12% 8%, rgba(90,140,232,0.22), transparent 60%),
+    radial-gradient(40vw 40vw at 92% 18%, rgba(74,210,149,0.16), transparent 60%),
+    radial-gradient(52vw 52vw at 70% 100%, rgba(150,90,232,0.16), transparent 62%);
+  filter:blur(30px);
+}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:clamp(18px,4vw,40px) clamp(14px,4vw,32px) 80px}
+
+/* ── 头部 ─────────────────────────────────────────────── */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.brand{display:flex;flex-direction:column;gap:6px;min-width:0}
+.brand h1{font-size:clamp(26px,4.4vw,40px);font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.brand .sub{font-size:14px;color:var(--fg2)}
+.count{color:var(--accent);font-weight:600}
+
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:flex;gap:2px;padding:3px;border-radius:var(--r-pill);
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);box-shadow:var(--inset)}
+.seg-btn{border:none;background:none;cursor:pointer;color:var(--fg2);
+  width:38px;height:32px;border-radius:var(--r-pill);display:grid;place-items:center;
+  transition:background .16s ease,color .16s ease}
+.seg-btn.active{background:var(--glass-strong);color:var(--fg)}
+.seg-btn svg{width:16px;height:16px;stroke:currentColor;fill:none}
+.search{
+  display:flex;align-items:center;gap:8px;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:9px 15px;box-shadow:var(--inset);min-width:0;
+}
+.search svg{width:16px;height:16px;flex:none;stroke:var(--muted);fill:none}
+.search input{background:none;border:none;outline:none;color:var(--fg);font:inherit;font-size:14px;width:min(38vw,190px)}
+.search input::placeholder{color:var(--muted)}
+.btn{
+  font:inherit;font-size:14px;font-weight:510;cursor:pointer;color:var(--fg);
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:9px 16px;box-shadow:var(--inset);
+  transition:background .18s ease,border-color .18s ease,transform .12s ease;
+}
+.btn:hover{background:var(--glass-strong);border-color:var(--border-strong)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn svg{width:15px;height:15px;vertical-align:-2px;margin-right:5px;stroke:currentColor;fill:none}
+.btn.icon-only{padding:9px 11px}
+.btn.icon-only svg{margin:0}
+.btn .spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 服务网格 ─────────────────────────────────────────── */
+.grid{
+  display:grid;gap:clamp(12px,1.8vw,18px);
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));
+}
+.card{
+  /* 无 backdrop-filter：页面为纯色底，40px 模糊无视觉收益却致滚动重绘卡顿 */
+  background:var(--glass-mid);
+  border:1px solid var(--border);border-radius:var(--r-card);
+  box-shadow:var(--inset),var(--card-shadow);
+  display:flex;align-items:center;gap:13px;padding:14px;
+  text-decoration:none;color:inherit;min-width:0;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--border-strong);box-shadow:var(--inset),var(--card-shadow-h)}
+.card:hover .go{opacity:1}
+
+.ico{flex:none;width:44px;height:44px;border-radius:var(--r-ctl);display:grid;place-items:center;
+  background:var(--glass-strong);border:1px solid var(--border);overflow:hidden}
+.ico img{width:28px;height:28px;object-fit:contain}
+.ico .letter{font-size:19px;font-weight:600;color:var(--accent)}
+
+.body{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.line{display:flex;align-items:center;gap:7px;min-width:0}
+.name{font-size:15px;font-weight:510;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(232,193,90,.14)}
+.dot.up{background:var(--ok);box-shadow:0 0 0 3px rgba(74,210,149,.16)}
+.sub{font-size:12.5px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;color:var(--fg2);background:var(--glass-mid);border:1px solid var(--border);
+  padding:2px 8px;border-radius:var(--r-pill);font-family:var(--mono)}
+.tag.guess{color:var(--warn);border-color:rgba(232,193,90,.3)}
+.go{flex:none;opacity:0;color:var(--fg2);transition:opacity .2s ease}
+.go svg{width:15px;height:15px;stroke:currentColor;fill:none;display:block}
+
+/* 列表模式：单列行，图标缩小 */
+.grid.list{grid-template-columns:minmax(0,1fr);gap:8px}
+.grid.list .card{padding:10px 14px}
+.grid.list .card:hover{transform:none}
+.grid.list .ico{width:34px;height:34px}
+.grid.list .ico img{width:22px;height:22px}
+.grid.list .body{flex-direction:row;align-items:center;gap:12px}
+.grid.list .line{flex:1}
+
+/* ── 空 / 错误 / 加载 ─────────────────────────────────── */
+.note{text-align:center;padding:70px 20px;color:var(--fg2)}
+.note .ico-big{width:56px;height:56px;margin:0 auto 16px;border-radius:var(--r-card);display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--border);box-shadow:var(--inset)}
+.note .ico-big svg{width:26px;height:26px;stroke:var(--muted);fill:none}
+.note h3{color:var(--fg);font-size:18px;font-weight:600;margin-bottom:6px}
+.note p{font-size:14px;max-width:420px;margin:0 auto;line-height:1.6}
+.note code{font-family:var(--mono);font-size:13px;background:var(--glass-mid);padding:2px 6px;border-radius:6px}
+.note.err h3{color:var(--danger)}
+
+.skel{background:var(--glass);border:1px solid var(--border);border-radius:var(--r-card);height:73px;
+  animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:.9}}
+
+/* 入场错落：仅前若干个，长列表不拖慢 */
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.grid .card{animation:cardIn .34s var(--ease-out) both;animation-delay:calc(min(var(--i,0),9)*38ms)}
+
+@media (prefers-reduced-motion:reduce){
+  .grid .card{animation:none}
+  .btn .spin{animation:none}
+  *{transition-duration:.01ms!important}
+}
+@media (max-width:560px){
+  .top{align-items:flex-start;gap:12px}
+  .tools{width:100%}
+  /* 搜索独占一行，其余控件并排，避免折成三行 */
+  .search{order:2;flex:1 1 100%}
+  .search input{width:100%}
+  .seg,.btn{order:1}
+  /* 触摸目标 ≥44px */
+  .seg{padding:4px}
+  .seg-btn{width:48px;height:38px}
+  .btn.icon-only{padding:12px 14px}
+  .card{padding:12px}
+  .ico{width:40px;height:40px}
+}

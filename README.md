@@ -22,7 +22,8 @@
 | `DOCKER_SOCK` | `/var/run/docker.sock` | Docker socket 路径 |
 | `PROBE_TIMEOUT` | `3` | 单端口探测超时（秒） |
 | `PROBE_LIMIT` | `16` | 并发探测数 |
-| `CACHE_TTL` | `20` | 扫描结果缓存秒数，刷新按钮强制重扫 |
+
+扫描结果进程内缓存，只在首次请求时探测；容器有变动点刷新按钮重扫。
 
 ## 本地开发
 ```bash

@@ -7,39 +7,34 @@ import tempfile
 import scan
 
 JF_ICON = "https://raw.githubusercontent.com/selfhosters/selfhostedpro/master/Runbooks/Jellyfin/jellyfin.png"
+UNRAID = "net.unraid.docker.managed"
+ICON = "net.unraid.docker.icon"
 
 # what an Unraid host reports: every container carries the managed label,
-# one also carries the icon URL configured in its template
+# one has a remote icon URL, one points at a local file that only exists on the host
 UNRAID_CONTAINERS = [
     {
         "Id": "a" * 64,
         "Names": ["/my-media"],
         "Image": "jellyfin/jellyfin:10.9.11@sha256:abc",
         "State": "running",
-        "Labels": {
-            "net.unraid.docker.managed": "/boot/config/plugins/dockerMan/templates-user/my-media.xml",
-            "net.unraid.docker.icon": JF_ICON,
-        },
+        "Labels": {UNRAID: "my-media.xml", ICON: JF_ICON},
         "Ports": [{"IP": "0.0.0.0", "PrivatePort": 8096, "PublicPort": 39871, "Type": "tcp"}],
     },
     {
         "Id": "b" * 64,
-        "Names": ["/sonarr"],
-        "Image": "ghcr.io/hotio/sonarr:latest",
+        "Names": ["/bark"],
+        "Image": "finab/bark-server:latest",
         "State": "running",
-        "Labels": {
-            "net.unraid.docker.managed": "/boot/config/plugins/dockerMan/templates-user/sonarr.xml",
-        },
-        "Ports": [{"IP": "0.0.0.0", "PrivatePort": 8989, "PublicPort": 39872, "Type": "tcp"}],
+        "Labels": {UNRAID: "bark.xml", ICON: "/mnt/user/appdata/icons/bark.png"},
+        "Ports": [{"IP": "0.0.0.0", "PrivatePort": 8080, "PublicPort": 39872, "Type": "tcp"}],
     },
     {
         "Id": "c" * 64,
         "Names": ["/postgres"],
         "Image": "postgres:16",
         "State": "running",
-        "Labels": {
-            "net.unraid.docker.managed": "/boot/config/plugins/dockerMan/templates-user/postgres.xml",
-        },
+        "Labels": {UNRAID: "postgres.xml"},
         "Ports": [{"IP": "0.0.0.0", "PrivatePort": 5432, "PublicPort": 39873, "Type": "tcp"}],
     },
 ]
@@ -57,30 +52,38 @@ async def _fake_daemon(reader, writer):
     writer.close()
 
 
-async def _scan(sock_path):
-    server = await asyncio.start_unix_server(_fake_daemon, path=sock_path)
-    saved = (scan.DOCKER_SOCK, scan.PROBE_TIMEOUT)
-    scan.DOCKER_SOCK, scan.PROBE_TIMEOUT = sock_path, 0.5
-    try:
-        return await scan.scan()
-    finally:
-        scan.DOCKER_SOCK, scan.PROBE_TIMEOUT = saved
-        server.close()
-        await server.wait_closed()
+def _scan_with(sock_path, icons_dir):
+    async def run():
+        server = await asyncio.start_unix_server(_fake_daemon, path=sock_path)
+        saved = (scan.DOCKER_SOCK, scan.UNRAID_ICONS, scan.PROBE_TIMEOUT)
+        scan.DOCKER_SOCK, scan.UNRAID_ICONS, scan.PROBE_TIMEOUT = sock_path, icons_dir, 0.5
+        try:
+            return await scan.scan()
+        finally:
+            scan.DOCKER_SOCK, scan.UNRAID_ICONS, scan.PROBE_TIMEOUT = saved
+            server.close()
+            await server.wait_closed()
+    return asyncio.run(run())
 
 
 def test_scan_pipeline_prefers_unraid_icon():
     with tempfile.TemporaryDirectory() as d:
-        data = asyncio.run(_scan(os.path.join(d, "dockerd.sock")))
+        icons = os.path.join(d, "icons")
+        os.mkdir(icons)
+        # only bark has a cached copy, like a real host where some icons never cached
+        with open(os.path.join(icons, "bark-icon.png"), "wb") as f:
+            f.write(b"\x89PNG fake")
+
+        data = _scan_with(os.path.join(d, "dockerd.sock"), icons)
 
     assert data["unraid"] is True
     by_name = {s["name"]: s for s in data["services"]}
     # postgres only publishes a blacklisted port, so it never shows up
-    assert set(by_name) == {"my-media", "sonarr"}
-    # unraid template icon wins even though the container name would guess a CDN url
+    assert set(by_name) == {"my-media", "bark"}
+    # remote URL label wins even though the container name would guess a CDN url
     assert by_name["my-media"]["icon"] == JF_ICON
-    # no template icon -> old guess-by-name behaviour
-    assert by_name["sonarr"]["icon"] == scan.ICON.format("sonarr")
+    # local path label is served through our proxy pointing at unraid's cache
+    assert by_name["bark"]["icon"] == "/api/icon/bark-icon.png"
 
 
 if __name__ == "__main__":

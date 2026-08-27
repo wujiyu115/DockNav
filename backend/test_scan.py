@@ -1,4 +1,8 @@
 """Run me: python test_scan.py"""
+import os
+import tempfile
+
+import scan
 from scan import ICON, choose, icon_for, is_unraid, published, slug
 
 
@@ -61,6 +65,24 @@ def test_unraid_icon_falls_back():
     assert icon_for({"Labels": {"net.unraid.docker.icon": "/mnt/user/icons/jf.png"}}, "jellyfin", True) == ICON.format("jellyfin")
     assert icon_for({"Labels": {}}, "jellyfin", True) == ICON.format("jellyfin")
     assert icon_for({"Labels": {"net.unraid.docker.icon": "https://x/y.png"}}, "jellyfin", False) == ICON.format("jellyfin")
+
+
+def test_unraid_local_icon_via_cache(monkeypatch=None):
+    # unraid copies the local icon into its cache dir; we serve it from there
+    with tempfile.TemporaryDirectory() as d:
+        saved = scan.UNRAID_ICONS
+        scan.UNRAID_ICONS = d
+        try:
+            open(os.path.join(d, "bark-icon.png"), "w").close()
+            # label points at a local file on the host - unreachable from the browser
+            c = {"Labels": {"net.unraid.docker.icon": "/mnt/user/appdata/icons/bark.png"}}
+            assert icon_for(c, "bark", True) == "/api/icon/bark-icon.png"
+            # empty label but unraid cached one from the template anyway
+            assert icon_for({"Labels": {}}, "bark", True) == "/api/icon/bark-icon.png"
+            # no cached copy -> name-guess fallback
+            assert icon_for({"Labels": {"net.unraid.docker.icon": "/mnt/user/x.png"}}, "nosuch", True) == ICON.format("nosuch")
+        finally:
+            scan.UNRAID_ICONS = saved
 
 
 if __name__ == "__main__":

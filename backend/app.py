@@ -1,11 +1,15 @@
+"""DockNav API + static frontend host."""
 import os
+import re
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
-from scan import scan
+from scan import UNRAID_ICONS, scan
 
 FRONTEND = os.getenv("FRONTEND", "")
+# container names and unraid's cached icon names are alnum plus ._- ; blocks traversal
+ICON_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 app = FastAPI(title="DockNav", version="1.0.0")
 _cache = {"data": None}
@@ -14,6 +18,16 @@ _cache = {"data": None}
 @app.get("/api/health")
 async def health():
     return {"ok": True}
+
+
+@app.get("/api/icon/{fname}")
+async def icon(fname: str):
+    if not ICON_NAME.match(fname) or ".." in fname:
+        raise HTTPException(400, "bad icon name")
+    path = os.path.join(UNRAID_ICONS, fname)
+    if not os.path.isfile(path):
+        raise HTTPException(404, "no such icon")
+    return FileResponse(path)
 
 
 @app.get("/api/services")

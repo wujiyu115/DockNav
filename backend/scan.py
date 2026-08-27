@@ -9,6 +9,8 @@ DOCKER_SOCK = os.getenv("DOCKER_SOCK", "/var/run/docker.sock")
 HOST_IP = os.getenv("HOST_IP", "127.0.0.1")
 PROBE_TIMEOUT = float(os.getenv("PROBE_TIMEOUT", "3"))
 PROBE_LIMIT = int(os.getenv("PROBE_LIMIT", "16"))
+# unraid copies every container's icon (template URL or local file) here as <name>-icon.png
+UNRAID_ICONS = os.getenv("UNRAID_ICONS", "/var/lib/docker/unraid/images")
 
 # container ports that never speak HTTP, used only when probing finds nothing
 NON_HTTP = {5432, 3306, 6379, 1883, 8883, 9001, 27017, 4369, 9100, 6888, 2019, 3012}
@@ -30,11 +32,18 @@ def is_unraid(containers):
 
 
 def icon_for(container, name, unraid):
-    """Prefer the icon URL configured in the Unraid template, else guess from the name."""
+    """Unraid template icon first: remote URL as-is, local file via our /api/icon proxy.
+
+    Unraid caches every container's icon as <name>-icon.png under UNRAID_ICONS,
+    already resolving whatever local path the template pointed at.
+    """
     if unraid:
-        url = (container.get("Labels") or {}).get(UNRAID_ICON, "")
-        if url.startswith(("http://", "https://")):
-            return url
+        label = (container.get("Labels") or {}).get(UNRAID_ICON, "")
+        if label.startswith(("http://", "https://")):
+            return label
+        cached = f"{name}-icon.png"
+        if os.path.isfile(os.path.join(UNRAID_ICONS, cached)):
+            return f"/api/icon/{cached}"
     return ICON.format(slug(name))
 
 

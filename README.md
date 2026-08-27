@@ -20,10 +20,13 @@
 |---|---|---|
 | `HOST_IP` | `127.0.0.1` | 探测目标 + 生成链接用的宿主机地址。桥接网络下必须设成宿主机真实 IP |
 | `DOCKER_SOCK` | `/var/run/docker.sock` | Docker socket 路径 |
+| `UNRAID_ICONS` | `/var/lib/docker/unraid/images` | Unraid 图标缓存目录（需以只读方式挂载进容器） |
 | `PROBE_TIMEOUT` | `3` | 单端口探测超时（秒） |
 | `PROBE_LIMIT` | `16` | 并发探测数 |
 
 扫描结果进程内缓存，只在首次请求时探测；容器有变动点刷新按钮重扫。
+
+图标来源优先级（Unraid 环境）：模板里配的图标 URL → Unraid 缓存的本地图标（经 `/api/icon/` 代理）→ 按 [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) 同名 png 猜 → 前端首字母。
 
 ## 本地开发
 ```bash
@@ -37,6 +40,7 @@ cd frontend && bun install && bun run dev                  # 终端 2 → http:/
 docker run -d --name docknav -p 5100:5100 \
   -e HOST_IP=192.168.31.139 \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v /var/lib/docker/unraid/images:/var/lib/docker/unraid/images:ro \
   wujiyu115/docknav:latest
 ```
 `HOST_IP` 填宿主机在局域网里的地址：容器内的探测和页面上生成的链接都用它，填成 `127.0.0.1` 时链接在别的设备上打不开。自建镜像用 `docker build -t docknav .`。
@@ -46,5 +50,5 @@ docker run -d --name docknav -p 5100:5100 \
 ## 已知边界
 - 走 `br0` / `host` 网络、没有端口映射的容器（如 Home Assistant 独立 IP）不会出现，Docker API 里查不到映射
 - 探测在容器内发起，桥接网络访问的是 `HOST_IP:端口`，所以 `HOST_IP` 填错会全部判成离线（仍会按推断值出卡片）
-- 图标取 [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) 里同名的 png，取不到时前端 `onerror` 退回首字母
+- 图标优先用 Unraid 模板里配置的（远程 URL 或缓存目录里的本地文件），没有模板配置时按 [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) 同名 png 猜，取不到时前端 `onerror` 退回首字母
 - 无鉴权

@@ -1,5 +1,5 @@
 """Run me: python test_scan.py"""
-from scan import choose, published, slug
+from scan import ICON, choose, icon_for, is_unraid, published, slug
 
 
 def test_published_keeps_tcp_only():
@@ -42,6 +42,25 @@ def test_no_ports_no_service():
 def test_slug():
     assert slug("CouchDB-v2.x") == "couchdb-v2-x"
     assert slug("openconnect-proxy-hk") == "openconnect-proxy-hk"
+
+
+def test_is_unraid():
+    assert is_unraid([{"Labels": {"net.unraid.docker.managed": "/boot/config/plugins/dockerMan/templates-user/jf.xml"}}])
+    assert not is_unraid([{"Labels": {"com.docker.compose.project": "x"}}])
+    assert not is_unraid([{}])
+    assert not is_unraid([])
+
+
+def test_unraid_icon_label_wins():
+    c = {"Labels": {"net.unraid.docker.icon": "https://raw.githubusercontent.com/x/jf.png"}}
+    assert icon_for(c, "jellyfin", True) == "https://raw.githubusercontent.com/x/jf.png"
+
+
+def test_unraid_icon_falls_back():
+    # local path label is unusable from the browser, and missing label / non-unraid host guess by name
+    assert icon_for({"Labels": {"net.unraid.docker.icon": "/mnt/user/icons/jf.png"}}, "jellyfin", True) == ICON.format("jellyfin")
+    assert icon_for({"Labels": {}}, "jellyfin", True) == ICON.format("jellyfin")
+    assert icon_for({"Labels": {"net.unraid.docker.icon": "https://x/y.png"}}, "jellyfin", False) == ICON.format("jellyfin")
 
 
 if __name__ == "__main__":

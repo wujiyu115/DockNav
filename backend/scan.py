@@ -15,10 +15,27 @@ NON_HTTP = {5432, 3306, 6379, 1883, 8883, 9001, 27017, 4369, 9100, 6888, 2019, 3
 # container ports most likely to be the primary web UI, best first
 WEB_PREF = [80, 443, 8080, 8000, 3000, 5000, 5001, 8096]
 ICON = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/{}.png"
+# labels Unraid stamps on every container it manages
+UNRAID_MANAGED = "net.unraid.docker.managed"
+UNRAID_ICON = "net.unraid.docker.icon"
 
 
 def slug(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def is_unraid(containers):
+    """True when the Docker host is Unraid: it labels the containers it manages."""
+    return any(UNRAID_MANAGED in (c.get("Labels") or {}) for c in containers)
+
+
+def icon_for(container, name, unraid):
+    """Prefer the icon URL configured in the Unraid template, else guess from the name."""
+    if unraid:
+        url = (container.get("Labels") or {}).get(UNRAID_ICON, "")
+        if url.startswith(("http://", "https://")):
+            return url
+    return ICON.format(slug(name))
 
 
 def published(container):
@@ -73,6 +90,7 @@ async def _containers():
 
 async def scan():
     containers = await _containers()
+    unraid = is_unraid(containers)
     ports_by_id = {c["Id"]: published(c) for c in containers}
     every = {h for ports in ports_by_id.values() for h, _ in ports}
 
@@ -96,9 +114,9 @@ async def scan():
             "port": port,
             "scheme": scheme,
             "href": f"{scheme}://{HOST_IP}:{port}",
-            "icon": ICON.format(slug(name)),
+            "icon": icon_for(c, name, unraid),
             "online": probed,
             "ports": [h for h, _ in ports_by_id[c["Id"]]],
         })
     out.sort(key=lambda s: s["name"].lower())
-    return {"host": HOST_IP, "count": len(out), "services": out}
+    return {"host": HOST_IP, "unraid": unraid, "count": len(out), "services": out}

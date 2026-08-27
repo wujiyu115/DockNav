@@ -12,6 +12,7 @@ export interface Service {
 
 export interface ServicesResponse {
   host: string;
+  unraid: boolean;
   count: number;
   services: Service[];
 }

@@ -61,21 +61,28 @@ def _rank(container_port):
     return WEB_PREF.index(container_port) if container_port in WEB_PREF else len(WEB_PREF)
 
 
-def choose(ports, schemes):
-    """Pick (host_port, scheme, probed) from [(host, container)] + {host: scheme|None}.
+def targets(ports, schemes):
+    """Web UIs of one container, best first, from [(host, container)] + {host: scheme|None}.
 
-    A port that answered HTTP always wins. When nothing answered - slow boot,
-    auth-only endpoint, plain TCP - fall back to guessing by container port.
+    Every port that answered HTTP is kept - a container can expose several Web UIs
+    (a UI plus an API/docs port), so the dashboard must not hide the extra ones.
+    When nothing answered - slow boot, auth-only endpoint, plain TCP - fall back to
+    a single guess by container port.
     """
-    live = [(h, c) for h, c in ports if schemes.get(h)]
+    by_host = dict(ports)
+    live = [(h, schemes[h], True) for h, _ in ports if schemes.get(h)]
+    live.sort(key=lambda t: (_rank(by_host[t[0]]), t[0]))
     if live:
-        h, c = min(live, key=lambda hc: (_rank(hc[1]), hc[0]))
-        return h, schemes[h], True
-    guess = [(h, c) for h, c in ports if c not in NON_HTTP]
-    if not guess:
-        return None
-    h, c = min(guess, key=lambda hc: (_rank(hc[1]), hc[0]))
-    return h, "http", False
+        return live
+    guess = [(h, "http", False) for h, c in ports if c not in NON_HTTP]
+    guess.sort(key=lambda t: (_rank(by_host[t[0]]), t[0]))
+    return guess[:1]
+
+
+def choose(ports, schemes):
+    """Primary (host_port, scheme, probed) for the container, or None."""
+    found = targets(ports, schemes)
+    return found[0] if found else None
 
 
 async def _probe(client, port, gate):
@@ -111,10 +118,10 @@ async def scan():
 
     out = []
     for c in containers:
-        hit = choose(ports_by_id[c["Id"]], schemes)
-        if not hit:
+        found = targets(ports_by_id[c["Id"]], schemes)
+        if not found:
             continue
-        port, scheme, probed = hit
+        port, scheme, probed = found[0]
         name = (c.get("Names") or ["/?"])[0].lstrip("/")
         out.append({
             "name": name,
@@ -125,7 +132,8 @@ async def scan():
             "href": f"{scheme}://{HOST_IP}:{port}",
             "icon": icon_for(c, name, unraid),
             "online": probed,
-            "ports": [h for h, _ in ports_by_id[c["Id"]]],
+            "links": [{"port": h, "scheme": s, "href": f"{s}://{HOST_IP}:{h}", "online": p}
+                      for h, s, p in found],
         })
     out.sort(key=lambda s: s["name"].lower())
     return {"host": HOST_IP, "unraid": unraid, "count": len(out), "services": out}

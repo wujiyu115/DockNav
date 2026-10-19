@@ -27,7 +27,10 @@ UNRAID_CONTAINERS = [
         "Image": "finab/bark-server:latest",
         "State": "running",
         "Labels": {UNRAID: "bark.xml", ICON: "/mnt/user/appdata/icons/bark.png"},
-        "Ports": [{"IP": "0.0.0.0", "PrivatePort": 8080, "PublicPort": 39872, "Type": "tcp"}],
+        "Ports": [
+            {"IP": "0.0.0.0", "PrivatePort": 8080, "PublicPort": 39872, "Type": "tcp"},
+            {"IP": "0.0.0.0", "PrivatePort": 8081, "PublicPort": 39874, "Type": "tcp"},
+        ],
     },
     {
         "Id": "c" * 64,
@@ -84,6 +87,10 @@ def test_scan_pipeline_prefers_unraid_icon():
     assert by_name["my-media"]["icon"] == JF_ICON
     # local path label is served through our proxy pointing at unraid's cache
     assert by_name["bark"]["icon"] == "/api/icon/bark-icon.png"
+    # an unprobed container still yields exactly one (guessed) link
+    assert len(by_name["my-media"]["links"]) == 1
+    # every port of bark is listed, and none of them answered in this fake run
+    assert [l["port"] for l in by_name["bark"]["links"]] == [39872]
 
 
 if __name__ == "__main__":

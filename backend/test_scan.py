@@ -3,7 +3,7 @@ import os
 import tempfile
 
 import scan
-from scan import ICON, choose, icon_for, is_unraid, published, slug
+from scan import ICON, choose, icon_for, is_unraid, published, slug, targets
 
 
 def test_published_keeps_tcp_only():
@@ -36,6 +36,17 @@ def test_guess_prefers_web_container_port():
 
 def test_https_scheme_survives():
     assert choose([(8443, 443)], {8443: "https"}) == (8443, "https", True)
+
+
+def test_every_http_port_is_kept():
+    # magpie publishes two web UIs; both must survive, the better-ranked container port first
+    ports = [(3425, 443), (3426, 80)]
+    assert targets(ports, {3425: "https", 3426: "http"}) == [
+        (3426, "http", True), (3425, "https", True)]
+    # the non-HTTP sibling is dropped, not merged into the list
+    assert targets([(3425, 443), (3427, 5432)], {3425: "http"}) == [(3425, "http", True)]
+    # a guess stays a single entry so unprobed containers do not sprout fake links
+    assert targets([(3425, 443), (3426, 80)], {}) == [(3426, "http", False)]
 
 
 def test_no_ports_no_service():

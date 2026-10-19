@@ -1,3 +1,10 @@
+export interface Link {
+  port: number;
+  scheme: 'http' | 'https';
+  href: string;
+  online: boolean;
+}
+
 export interface Service {
   name: string;
   image: string;
@@ -7,7 +14,7 @@ export interface Service {
   href: string;
   icon: string;
   online: boolean;
-  ports: number[];
+  links: Link[];
 }
 
 export interface ServicesResponse {

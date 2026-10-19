@@ -35,7 +35,8 @@ export default function App() {
     const k = q.trim().toLowerCase();
     if (!k) return svcs ?? [];
     return (svcs ?? []).filter(
-      (s) => s.name.toLowerCase().includes(k) || s.image.toLowerCase().includes(k) || String(s.port).includes(k),
+      (s) => s.name.toLowerCase().includes(k) || s.image.toLowerCase().includes(k)
+        || s.links.some((l) => String(l.port).includes(k)),
     );
   }, [svcs, q]);
 

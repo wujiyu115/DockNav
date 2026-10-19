@@ -115,6 +115,8 @@ body::before{
 }
 .card:hover{transform:translateY(-3px);border-color:var(--border-strong);box-shadow:var(--inset),var(--card-shadow-h)}
 .card:hover .go{opacity:1}
+/* 卡片内的链接：图标、名称、端口标签各自可点，但别用默认下划线样式 */
+.card a{text-decoration:none;color:inherit}
 
 .ico{flex:none;width:44px;height:44px;border-radius:var(--r-ctl);display:grid;place-items:center;
   background:var(--glass-strong);border:1px solid var(--border);overflow:hidden}
@@ -129,7 +131,9 @@ body::before{
 .sub{font-size:12.5px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .tag{font-size:11px;color:var(--fg2);background:var(--glass-mid);border:1px solid var(--border);
-  padding:2px 8px;border-radius:var(--r-pill);font-family:var(--mono)}
+  padding:2px 8px;border-radius:var(--r-pill);font-family:var(--mono);
+  transition:background .16s ease,color .16s ease,border-color .16s ease}
+.card a.tag:hover{background:var(--glass-strong);color:var(--fg);border-color:var(--border-strong)}
 .tag.guess{color:var(--warn);border-color:rgba(232,193,90,.3)}
 .go{flex:none;opacity:0;color:var(--fg2);transition:opacity .2s ease}
 .go svg{width:15px;height:15px;stroke:currentColor;fill:none;display:block}
